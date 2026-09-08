@@ -10,9 +10,19 @@
 #include <Button.h>
 #include <input/ButtonAdapter.h>
 
+
+
+#define UP_PIN      2
+#define DOWN_PIN    3
+#define ENTER_PIN   4 
+#define BACK_PIN    5
+
 #define LCD_COLS 20
 #define LCD_ROWS 4
 
 extern LiquidCrystal_I2C lcd;
 
 void setMenu(void);
+
+void initButtons(void);
+void buttonObserver(void);

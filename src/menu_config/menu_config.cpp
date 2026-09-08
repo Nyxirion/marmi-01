@@ -17,8 +17,18 @@ MENU_SCREEN(mainScreen, mainItems,
 );
 // clang-format on
 
+/***************************************
+ *          BUTTON CONFIG              *
+ ***************************************/
+Button upButton(UP_PIN);
+Button downButton(DOWN_PIN);
+Button enterButton(ENTER_PIN);
+Button backButton(BACK_PIN);
 
-
+ButtonAdapter upButtonA(&menu, &upButton, UP, 500, 200);  // hold to repeat
+ButtonAdapter downButtonA(&menu, &downButton, DOWN, 500, 200);
+ButtonAdapter enterButtonA(&menu, &enterButton, ENTER);
+ButtonAdapter backButtonA(&menu, &backButton, BACK);
 
 
 
@@ -26,3 +36,17 @@ void setMenu(void){
     renderer.begin();
     menu.setScreen(mainScreen);
 };
+
+void initButtons(void){
+    upButton.begin();
+    downButton.begin();
+    enterButton.begin();
+    backButton.begin();
+}
+
+void buttonObserver(void){
+    upButtonA.observe();
+    downButtonA.observe();
+    enterButtonA.observe();
+    backButtonA.observe();
+}
