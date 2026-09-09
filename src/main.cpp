@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <Arduino_FreeRTOS.h>
 
 #include "menu_config/menu_config.h"
 
