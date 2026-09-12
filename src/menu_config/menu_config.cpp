@@ -9,11 +9,22 @@ LiquidCrystal_I2CAdapter lcdAdapter(&lcd);
 CharacterDisplayRenderer renderer(&lcdAdapter, LCD_COLS, LCD_ROWS);
 LcdMenu menu(renderer);
 
+// Variables to display and modify the values in the menu, this is shared between all files 
+bool pidState;
+uint8_t temperature;
+
+void pidToggle(bool isOn){
+    pidState = isOn;
+};
+
 // clang-format off
 MENU_SCREEN(mainScreen, mainItems,
-    ITEM_RANGE<int>("Volume", 50, 5, 0, 100, [](const int value) {
+    ITEM_TOGGLE("PID Running", pidToggle),
+    ITEM_VALUE("Temp. Cabina", temperature, "%d C"),
+    ITEM_RANGE<int>("Setpoint", 50, 5, 0, 100, [](const int value) {
         Serial.println(value);
-    }, "%d%%")
+    }, "%d\xDF C"),
+    
 );
 // clang-format on
 
@@ -49,4 +60,8 @@ void buttonObserver(void){
     downButtonA.observe();
     enterButtonA.observe();
     backButtonA.observe();
+}
+
+void updateDisplay(void){
+    menu.poll();
 }

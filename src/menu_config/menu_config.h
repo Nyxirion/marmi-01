@@ -7,6 +7,7 @@
 #include <MenuScreen.h>
 #include <ItemToggle.h>
 #include <ItemRange.h>
+#include <ItemValue.h>
 #include <Button.h>
 #include <input/ButtonAdapter.h>
 
@@ -22,7 +23,11 @@
 
 extern LiquidCrystal_I2C lcd;
 
+extern bool pidState;
+extern uint8_t temperature;
+
 void setMenu(void);
+void updateDisplay(void);
 
 void initButtons(void);
 void buttonObserver(void);
