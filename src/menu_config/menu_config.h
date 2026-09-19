@@ -24,7 +24,7 @@
 extern LiquidCrystal_I2C lcd;
 
 extern bool pidState;
-extern uint8_t temperature;
+extern float temperature;
 
 void setMenu(void);
 void updateDisplay(void);

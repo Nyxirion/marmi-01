@@ -3,14 +3,19 @@
 
 #include "menu_config/menu_config.h"
 #include "pid.h"
+#include "sht_31/sht_31.h"
 
 Scheduler runner;
 
 
 void pid(){
+
+    float t = sht31.readTemperature();
+
     if(pidState){
         digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
-        temperature = random(1, 101);
+        temperature = t;
+        Serial.println(temperature);
         updateDisplay();
     }
 }
@@ -23,6 +28,8 @@ void setup(){
 
     setMenu();
     initButtons();
+
+    init_sht31();
 
     runner.addTask(taskButtons);
     runner.addTask(taskPID);

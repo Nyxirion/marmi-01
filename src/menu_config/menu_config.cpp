@@ -11,7 +11,7 @@ LcdMenu menu(renderer);
 
 // Variables to display and modify the values in the menu, this is shared between all files 
 bool pidState;
-uint8_t temperature;
+float temperature;
 
 void pidToggle(bool isOn){
     pidState = isOn;
@@ -20,10 +20,10 @@ void pidToggle(bool isOn){
 // clang-format off
 MENU_SCREEN(mainScreen, mainItems,
     ITEM_TOGGLE("PID Running", pidToggle),
-    ITEM_VALUE("Temp. Cabina", temperature, "%d C"),
     ITEM_RANGE<int>("Setpoint", 50, 5, 0, 100, [](const int value) {
         Serial.println(value);
     }, "%d\xDF C"),
+    ITEM_VALUE("Temp. Cabina", temperature, "%f C"),
     
 );
 // clang-format on
