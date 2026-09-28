@@ -17,13 +17,15 @@ void pidToggle(bool isOn){
     pidState = isOn;
 };
 
+void callbackTemp(const float value){
+    Serial.println(value);
+};
+
 // clang-format off
 MENU_SCREEN(mainScreen, mainItems,
     ITEM_TOGGLE("PID Running", pidToggle),
-    ITEM_RANGE<int>("Setpoint", 50, 5, 0, 100, [](const int value) {
-        Serial.println(value);
-    }, "%d\xDF C"),
-    ITEM_VALUE("Temp. Cabina", temperature, "%f C"),
+    ITEM_RANGE("Temp", -1.0f, 0.01f, -1.0f, 1.0f, callbackTemp, "%.2f°C", 2),
+    ITEM_VALUE("Temp. Cabina", temperature, "%f°C"),
     
 );
 // clang-format on
