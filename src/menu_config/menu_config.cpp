@@ -13,19 +13,24 @@ LcdMenu menu(renderer);
 bool pidState;
 float temperature;
 
+// Global structure of the pid
+pid_controller_t pid_temp;
+
+
 void pidToggle(bool isOn){
     pidState = isOn;
 };
 
 void callbackTemp(const float value){
+    pid_temp.setpoint = value;
     Serial.println(value);
 };
 
 // clang-format off
 MENU_SCREEN(mainScreen, mainItems,
     ITEM_TOGGLE("PID Running", pidToggle),
-    ITEM_RANGE("Temp", -1.0f, 0.01f, -1.0f, 1.0f, callbackTemp, "%.2f°C", 2),
-    ITEM_VALUE("Temp. Cabina", temperature, "%f°C"),
+    ITEM_RANGE("Temp", 35.0f, 0.1f, 30.0f, 37.5f, callbackTemp, "%.2f\xDF C", 2),
+    ITEM_VALUE("Temp. Cabina", temperature, "%f\xDF C"),
     
 );
 // clang-format on

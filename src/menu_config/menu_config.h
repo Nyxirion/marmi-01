@@ -10,18 +10,20 @@
 #include <ItemValue.h>
 #include <Button.h>
 #include <input/ButtonAdapter.h>
+#include <pid.h>
 
 
 
-#define UP_PIN      2
-#define DOWN_PIN    3
-#define ENTER_PIN   4 
-#define BACK_PIN    5
+#define UP_PIN      4
+#define DOWN_PIN    36
+#define ENTER_PIN   34
+#define BACK_PIN    3
 
 #define LCD_COLS 20
 #define LCD_ROWS 4
 
 extern LiquidCrystal_I2C lcd;
+extern pid_controller_t pid_temp;
 
 extern bool pidState;
 extern float temperature;
