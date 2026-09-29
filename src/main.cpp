@@ -38,7 +38,7 @@ void setup(){
 
     //PID INITIAL CONFIG
     pid_temp.kp = 0.8f;
-    pid_temp.ki = 0.2f;
+    pid_temp.ki = 0.05f;
     pid_temp.kd = 0;
     pid_temp.setpoint = 35.0f;
 
