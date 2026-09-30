@@ -4,6 +4,8 @@
 #include "menu_config/menu_config.h"
 #include "sht_31/sht_31.h"
 
+#define LED_PID 45
+
 Scheduler runner;
 
 //PID THINGS
@@ -13,7 +15,7 @@ void pid(){
     float t = sht31.readTemperature();
 
     if(pidState){
-        digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+        digitalWrite(LED_PID, !digitalRead(LED_PID));
         temperature = t;
 
 
@@ -29,8 +31,15 @@ void pid(){
         updateDisplay();
     }
 }
+
+void humidity(){
+    float hum;
+    
+    
+}
 Task taskButtons(25, TASK_FOREVER, &buttonObserver);
-Task taskPID(500, TASK_FOREVER, &pid);
+Task taskPID(2000, TASK_FOREVER, &pid);
+Task taskHumidity(1000, TASK_FOREVER, &humidity);
 
 void setup(){
     Serial.begin(9600);
