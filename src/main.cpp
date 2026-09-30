@@ -5,6 +5,15 @@
 #include "sht_31/sht_31.h"
 
 #define LED_PID 45
+#define EXTRACTOR 12
+#define HUM_RESISTOR 10
+
+// constants
+
+#define maxHumidity 80
+#define minHumidity 40
+
+#define maxTemperature 39
 
 Scheduler runner;
 
@@ -12,28 +21,41 @@ Scheduler runner;
 
 void pid(){
 
-    float t = sht31.readTemperature();
+    float temperature = sht31.readTemperature();
 
     if(pidState){
         digitalWrite(LED_PID, !digitalRead(LED_PID));
-        temperature = t;
 
+        if(temperature > maxTemperature){
+            pid_temp.output = 0.0f;
+        }
+        else{
+            pid_temp.output = computePID(&pid_temp, temperature);
 
-        pid_temp.output = computePID(&pid_temp, temperature);
-
-        analogWrite(9, (int)pid_temp.output);
-
+            analogWrite(9, (int)pid_temp.output);
+        }
         
         // Serial print for debug
         Serial.print("output is:");
         Serial.println(pid_temp.output);
         Serial.println(temperature);
+        
         updateDisplay();
     }
 }
 
 void humidity(){
-    float hum;
+    float hum = sht31.readHumidity();
+
+    if(hum >= maxHumidity){
+        digitalWrite(EXTRACTOR, HIGH);
+        digitalWrite(HUM_RESISTOR, LOW);
+    }
+    
+    if(hum <= minHumidity){
+        digitalWrite(EXTRACTOR, LOW);
+        digitalWrite(HUM_RESISTOR, HIGH);
+    }
     
     
 }
@@ -43,7 +65,10 @@ Task taskHumidity(1000, TASK_FOREVER, &humidity);
 
 void setup(){
     Serial.begin(9600);
+    pinMode(LED_PID, OUTPUT);
     pinMode(LED_BUILTIN, OUTPUT);
+    pinMode(HUM_RESISTOR, OUTPUT);
+    pinMode(EXTRACTOR, OUTPUT);
 
     //PID INITIAL CONFIG
     pid_temp.kp = 0.8f;
