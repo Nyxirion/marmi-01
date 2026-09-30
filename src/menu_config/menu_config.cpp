@@ -12,6 +12,8 @@ LcdMenu menu(renderer);
 // Variables to display and modify the values in the menu, this is shared between all files 
 bool pidState;
 float temperature;
+int hum;
+int set_hum;
 
 // Global structure of the pid
 pid_controller_t pid_temp;
@@ -26,12 +28,16 @@ void callbackTemp(const float value){
     Serial.println(value);
 };
 
+void callbackHum(const int value){
+    set_hum = value;
+};
 // clang-format off
 MENU_SCREEN(mainScreen, mainItems,
     ITEM_TOGGLE("PID Running", pidToggle),
-    ITEM_RANGE("Temp", 35.0f, 0.1f, 30.0f, 37.5f, callbackTemp, "%.2f\xDF C", 2),
-    ITEM_VALUE("Temp. Cabina", temperature, "%f\xDF C"),
-    
+    ITEM_RANGE("Sel.Temp", 35.0f, 0.5f, 30.0f, 37.5f, callbackTemp, "%.2f\xDF""C", 2),
+    ITEM_VALUE("Temp.Cabin", temperature, "%.2f\xDF""C"),
+    ITEM_VALUE("Hum. Cabin", hum, "%d %%"),
+    ITEM_RANGE("Sel.Hum", 60, 5, 40, 80, callbackHum, "%d%%", 2),
 );
 // clang-format on
 

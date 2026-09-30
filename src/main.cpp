@@ -6,12 +6,12 @@
 
 #define LED_PID 45
 #define EXTRACTOR 12
-#define HUM_RESISTOR 10
+#define HUM_RESISTOR 11
 
 // constants
 
 #define maxHumidity 80
-#define minHumidity 40
+#define minHumidity 45
 
 #define maxTemperature 39
 
@@ -21,11 +21,12 @@ Scheduler runner;
 
 void pid(){
 
-    float temperature = sht31.readTemperature();
+    float t = sht31.readTemperature();
 
     if(pidState){
         digitalWrite(LED_PID, !digitalRead(LED_PID));
 
+        temperature = t;
         if(temperature > maxTemperature){
             pid_temp.output = 0.0f;
         }
@@ -45,18 +46,17 @@ void pid(){
 }
 
 void humidity(){
-    float hum = sht31.readHumidity();
+    hum = (int)sht31.readHumidity();
 
-    if(hum >= maxHumidity){
-        digitalWrite(EXTRACTOR, HIGH);
-        digitalWrite(HUM_RESISTOR, LOW);
-    }
-    
-    if(hum <= minHumidity){
-        digitalWrite(EXTRACTOR, LOW);
+    if(hum < set_hum - 5){
         digitalWrite(HUM_RESISTOR, HIGH);
     }
-    
+    else{
+        digitalWrite(HUM_RESISTOR, LOW);
+    }
+    if(hum >= maxHumidity){
+        digitalWrite(HUM_RESISTOR, LOW);
+    }    
     
 }
 Task taskButtons(25, TASK_FOREVER, &buttonObserver);
@@ -70,6 +70,9 @@ void setup(){
     pinMode(HUM_RESISTOR, OUTPUT);
     pinMode(EXTRACTOR, OUTPUT);
 
+    // Eliminar adelante
+    pinMode(11,OUTPUT);
+    pinMode(12,OUTPUT);
     //PID INITIAL CONFIG
     pid_temp.kp = 0.8f;
     pid_temp.ki = 0.05f;
@@ -82,7 +85,9 @@ void setup(){
     pid_temp.minOutputLim = 0.0f;
     pid_temp.maxOutputLim = 255.0f;
 
-    
+    // Hum
+    set_hum = minHumidity;
+
     pid_config_init(&pid_temp);
 
 
@@ -93,9 +98,11 @@ void setup(){
 
     runner.addTask(taskButtons);
     runner.addTask(taskPID);
+    runner.addTask(taskHumidity);
 
     taskButtons.enable();
     taskPID.enable();
+    taskHumidity.enable();
 }
 
 void loop(){

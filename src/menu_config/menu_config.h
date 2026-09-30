@@ -27,6 +27,8 @@ extern pid_controller_t pid_temp;
 
 extern bool pidState;
 extern float temperature;
+extern int hum;
+extern int set_hum;
 
 void setMenu(void);
 void updateDisplay(void);
