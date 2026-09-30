@@ -48,13 +48,16 @@ void setup(){
     //PID INITIAL CONFIG
     pid_temp.kp = 0.8f;
     pid_temp.ki = 0.05f;
-    pid_temp.kd = 0;
+    pid_temp.kd = 40.0f;
+
     pid_temp.setpoint = 35.0f;
+    pid_temp.filterTau = 10.0f;
+    pid_temp.sampleTime = 0.5f;
 
     pid_temp.minOutputLim = 0.0f;
     pid_temp.maxOutputLim = 255.0f;
 
-    pid_temp.sampleTime = 0.5f;
+    
     pid_config_init(&pid_temp);
 
 
