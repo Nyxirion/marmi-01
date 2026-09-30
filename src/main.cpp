@@ -17,6 +17,17 @@
 
 Scheduler runner;
 
+// Intervalos (ms)
+const unsigned long ON_TIME  = 500;
+const unsigned long OFF_TIME = 500;
+
+// Estado
+unsigned long lastChange = 0;
+bool estado = false;          // false = apagado, true = encendido
+
+// declarations 
+void testSystem(void);
+
 //PID THINGS
 
 void pid(){
@@ -27,10 +38,22 @@ void pid(){
         digitalWrite(LED_PID, !digitalRead(LED_PID));
 
         temperature = t;
+
+        uint32_t time = millis();
+        uint32_t intervalo = estado ? ON_TIME : OFF_TIME;
+
         if(temperature > maxTemperature){
             pid_temp.output = 0.0f;
+            digitalWrite(33, HIGH);
+            if (time - lastChange >= intervalo) {
+                estado = !estado;                     
+                digitalWrite(LED_BUILTIN, estado ? HIGH : LOW);
+                lastChange = time;                     
+            }
         }
         else{
+            digitalWrite(LED_BUILTIN, LOW); // Buzzer OFF
+            digitalWrite(33, LOW);          // Alarm Led OFF
             pid_temp.output = computePID(&pid_temp, temperature);
 
             analogWrite(9, (int)pid_temp.output);
@@ -43,9 +66,16 @@ void pid(){
         
         updateDisplay();
     }
-}
 
+    else{
+        analogWrite(9, 0);
+        digitalWrite(LED_PID, LOW);
+    }
+}
+Task taskSystemTest(200, TASK_FOREVER, &testSystem);
 void humidity(){
+    if(systemTest) taskSystemTest.enable(); 
+
     hum = (int)sht31.readHumidity();
 
     if(hum < set_hum - 5){
@@ -59,9 +89,11 @@ void humidity(){
     }    
     
 }
+
 Task taskButtons(25, TASK_FOREVER, &buttonObserver);
 Task taskPID(2000, TASK_FOREVER, &pid);
 Task taskHumidity(1000, TASK_FOREVER, &humidity);
+
 
 void setup(){
     Serial.begin(9600);
@@ -69,10 +101,23 @@ void setup(){
     pinMode(LED_BUILTIN, OUTPUT);
     pinMode(HUM_RESISTOR, OUTPUT);
     pinMode(EXTRACTOR, OUTPUT);
-
+    pinMode(LED_SENSOR, OUTPUT);
     // Eliminar adelante
     pinMode(11,OUTPUT);
     pinMode(12,OUTPUT);
+    pinMode(33, OUTPUT);
+
+    //Debug de test 
+    pinMode(28, OUTPUT); // LED FALLA SENSOR
+    //digitalWrite(33, HIGH); Esto es un botón
+    pinMode(35, OUTPUT); // LED TEMP PIEL
+    pinMode(32, OUTPUT); // LED SIN NOMBRE
+    pinMode(31, OUTPUT); // FALLA DE RESISTENCIA LED
+    pinMode(30, OUTPUT); // WATER LEVEL 
+    pinMode(45, OUTPUT); // MODO PIEL // Actualmente es el heartbeat del PID 
+    pinMode(44, OUTPUT); // LED MODE AIRE
+    pinMode(42, OUTPUT);
+
     //PID INITIAL CONFIG
     pid_temp.kp = 0.8f;
     pid_temp.ki = 0.05f;
@@ -99,13 +144,55 @@ void setup(){
     runner.addTask(taskButtons);
     runner.addTask(taskPID);
     runner.addTask(taskHumidity);
+    runner.addTask(taskSystemTest);
 
     taskButtons.enable();
     taskPID.enable();
     taskHumidity.enable();
+    taskSystemTest.disable();
 }
 
 void loop(){
     runner.execute();
 }
 
+void testSystem(){
+    if(systemTest){
+        taskHumidity.disable();
+        taskPID.disable();
+
+        digitalWrite(9, HIGH);  // Enable Resistor PID
+        digitalWrite(10, HIGH); // Relé 1 
+        digitalWrite(11, HIGH); // Relé 2 
+        digitalWrite(12, HIGH); // Relé 3
+        digitalWrite(LED_BUILTIN, HIGH); // Buzzer
+        digitalWrite(28, HIGH); // LED FALLA SENSOR
+        //digitalWrite(33, HIGH); Esto es un botón
+        digitalWrite(35, HIGH); // LED TEMP PIEL
+        digitalWrite(32, HIGH); // LED SIN NOMBRE
+        digitalWrite(31, HIGH); // FALLA DE RESISTENCIA LED
+        digitalWrite(30, HIGH); // WATER LEVEL 
+        digitalWrite(45, HIGH); // MODO PIEL // Actualmente es el heartbeat del PID 
+        digitalWrite(44, HIGH); // LED MODE AIRE
+        digitalWrite(42, HIGH); //
+    }
+    else{
+        digitalWrite(9, LOW);  // Enable Resistor PID
+        digitalWrite(10, LOW); // Relé 1 
+        digitalWrite(11, LOW); // Relé 2 
+        digitalWrite(12, LOW); // Relé 3
+        digitalWrite(LED_BUILTIN, LOW); // Buzzer
+        digitalWrite(28, LOW); // LED FALLA SENSOR
+        //digitalWrite(33, HIGH); Esto es un botón
+        digitalWrite(35, LOW); // LED TEMP PIEL
+        digitalWrite(32, LOW); // LED SIN NOMBRE
+        digitalWrite(31, LOW); // FALLA DE RESISTENCIA LED
+        digitalWrite(30, LOW); // WATER LEVEL 
+        digitalWrite(45, LOW); // MODO PIEL // Actualmente es el heartbeat del PID 
+        digitalWrite(44, LOW); // LED MODE AIRE
+        digitalWrite(42, LOW); //
+        taskHumidity.enable();
+        taskPID.enable();
+        taskSystemTest.disable();
+    }
+}
