@@ -8,6 +8,8 @@
 #include <ItemToggle.h>
 #include <ItemRange.h>
 #include <ItemValue.h>
+#include <ItemWidget.h>
+#include <widget/WidgetList.h>
 #include <Button.h>
 #include <input/ButtonAdapter.h>
 #include <pid.h>
@@ -32,6 +34,7 @@ extern int hum;
 extern int set_hum;
 
 extern bool systemTest;
+extern bool modo;
 
 void setMenu(void);
 void updateDisplay(void);
