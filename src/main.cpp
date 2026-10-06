@@ -23,12 +23,7 @@ Scheduler runner;
 LiquidCrystal_I2C lcd2(0x26, 2, 16);
 
 // Intervalos (ms)
-const unsigned long ON_TIME = 500;
-const unsigned long OFF_TIME = 500;
-
-// Estado humedad
-unsigned long lastChange = 0;
-bool estado = false; // false = apagado, true = encendido
+const unsigned long INTERVALO = 500;
 
 // Estado DS18B20
 static uint32_t lastRequest = 0;
@@ -37,6 +32,8 @@ float t2 = 0;
 
 // declarations
 void testSystem(void);
+void createAlarm(uint32_t intervalo, uint8_t LED, bool reset);
+void createAlarm2(uint32_t intervalo, uint8_t LED, bool reset);
 
 // PID THINGS
 
@@ -45,32 +42,21 @@ void pid()
 
     float t = sht31.readTemperature();
 
+    temperature = t;
+
     if (pidState)
     {
         digitalWrite(LED_PID, !digitalRead(LED_PID));
-
-        temperature = t;
-
         if (modo == 0)
         {
-            uint32_t time = millis();
-            uint32_t intervalo = estado ? ON_TIME : OFF_TIME;
-
-            if (temperature > maxTemperature)
-            {
-                pid_temp.output = 0.0f;
-                digitalWrite(33, HIGH);
-                if (time - lastChange >= intervalo)
-                {
-                    estado = !estado;
-                    digitalWrite(LED_BUILTIN, estado ? HIGH : LOW);
-                    lastChange = time;
-                }
+            if(temperature > maxTemperature){ // Alarma de cabina 
+                analogWrite(9, 0);
+                createAlarm(INTERVALO, 33, false);
             }
+
             else
             {
-                digitalWrite(LED_BUILTIN, LOW); // Buzzer OFF
-                digitalWrite(33, LOW);          // Alarm Led OFF
+                createAlarm(INTERVALO, 33, true);
                 pid_temp.output = computePID(&pid_temp, temperature);
 
                 analogWrite(9, (int)pid_temp.output);
@@ -84,24 +70,14 @@ void pid()
 
         if(modo){
 
-            uint32_t time2 = millis();
-            uint32_t intervalo = estado ? ON_TIME : OFF_TIME;
-
-            if (t2 > maxTemperature)
+            if (t2 > 38)
             {
-                pid_temp.output = 0.0f;
-                digitalWrite(33, HIGH);
-                if (time2 - lastChange >= intervalo)
-                {
-                    estado = !estado;
-                    digitalWrite(LED_BUILTIN, estado ? HIGH : LOW);
-                    lastChange = time2;
-                }
+                analogWrite(9, 0);
+                createAlarm2(INTERVALO, 33, false);   
             }
             else
             {
-                digitalWrite(LED_BUILTIN, LOW); // Buzzer OFF
-                digitalWrite(33, LOW);          // Alarm Led OFF
+                createAlarm2(INTERVALO, 33, true);
                 pid_temp.output = computePID(&pid_temp, t2);
 
                 analogWrite(9, (int)pid_temp.output);
@@ -290,5 +266,55 @@ void testSystem()
         taskHumidity.enable();
         taskPID.enable();
         taskSystemTest.disable();
+    }
+}
+
+void createAlarm(uint32_t intervalo, uint8_t LED, bool reset = false)
+{
+    static uint32_t lastChange = 0;
+    static bool estado = false;
+
+    if (reset)
+    {
+        estado = false;
+        lastChange = millis();
+        digitalWrite(LED, LOW);
+        digitalWrite(LED_BUILTIN, LOW);
+        return;
+    }
+
+    uint32_t ahora = millis();
+
+    if (ahora - lastChange >= intervalo)
+    {
+        estado = !estado;
+        digitalWrite(LED, HIGH);
+        digitalWrite(LED_BUILTIN, estado ? HIGH : LOW);
+        lastChange = ahora;
+    }
+}
+
+void createAlarm2(uint32_t intervalo, uint8_t LED, bool reset = false)
+{
+    static uint32_t lastChange = 0;
+    static bool estado = false;
+
+    if (reset)
+    {
+        estado = false;
+        lastChange = millis();
+        digitalWrite(LED, LOW);
+        digitalWrite(LED_BUILTIN, LOW);
+        return;
+    }
+
+    uint32_t ahora = millis();
+
+    if (ahora - lastChange >= intervalo)
+    {
+        estado = !estado;
+        digitalWrite(LED, HIGH);
+        digitalWrite(LED_BUILTIN, estado ? HIGH : LOW);
+        lastChange = ahora;
     }
 }
