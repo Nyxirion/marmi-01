@@ -32,7 +32,7 @@ float t2 = 0;
 
 // declarations
 void testSystem(void);
-void createAlarm(uint32_t intervalo, uint8_t LED, bool reset);
+void createAlarm(uint32_t intervalo, bool reset);
 void createAlarm2(uint32_t intervalo, uint8_t LED, bool reset);
 
 // PID THINGS
@@ -49,14 +49,27 @@ void pid()
         digitalWrite(LED_PID, !digitalRead(LED_PID));
         if (modo == 0)
         {
-            if(temperature > maxTemperature){ // Alarma de cabina 
+            if (t2 > 38 || temperature > maxTemperature)
+            {
                 analogWrite(9, 0);
-                createAlarm(INTERVALO, 33, false);
+                if (t2 > 38)
+                    digitalWrite(35, HIGH);
+                else
+                    digitalWrite(35, LOW);
+
+                if (temperature > maxTemperature)
+                    digitalWrite(33, HIGH);
+                else
+                    digitalWrite(33, LOW);
+
+                createAlarm(INTERVALO, false);
             }
 
             else
             {
-                createAlarm(INTERVALO, 33, true);
+                createAlarm(INTERVALO, true);
+                digitalWrite(35, LOW);
+                digitalWrite(33, LOW);
                 pid_temp.output = computePID(&pid_temp, temperature);
 
                 analogWrite(9, (int)pid_temp.output);
@@ -68,16 +81,29 @@ void pid()
             Serial.println(temperature);
         }
 
-        if(modo){
+        if (modo)
+        {
 
-            if (t2 > 38)
+            if (t2 > 38 || temperature > maxTemperature)
             {
                 analogWrite(9, 0);
-                createAlarm2(INTERVALO, 33, false);   
+                if (t2 > 38)
+                    digitalWrite(35, HIGH);
+                else
+                    digitalWrite(35, LOW);
+                if (temperature > maxTemperature)
+                    digitalWrite(33, HIGH);
+                else
+                    digitalWrite(33, LOW);
+
+                createAlarm(INTERVALO, false);
             }
+
             else
             {
-                createAlarm2(INTERVALO, 33, true);
+                createAlarm(INTERVALO, true);
+                digitalWrite(33, LOW);
+                digitalWrite(35, LOW);
                 pid_temp.output = computePID(&pid_temp, t2);
 
                 analogWrite(9, (int)pid_temp.output);
@@ -87,7 +113,6 @@ void pid()
             Serial.print("output is:");
             Serial.println(pid_temp.output);
             Serial.println(t2);
-            
         }
         updateDisplay();
     }
@@ -96,6 +121,14 @@ void pid()
     {
         analogWrite(9, 0);
         digitalWrite(LED_PID, LOW);
+        digitalWrite(35, LOW);
+        digitalWrite(33, LOW);
+        digitalWrite(EXTRACTOR, LOW);
+        digitalWrite(HUM_RESISTOR, LOW);
+        digitalWrite(10, LOW);
+        digitalWrite(11, LOW);
+        digitalWrite(12, LOW);
+        digitalWrite(LED_BUILTIN, LOW);
     }
 }
 
@@ -107,27 +140,29 @@ void humidity()
         taskSystemTest.enable();
 
     hum = (int)sht31.readHumidity();
+    if (pidState)
+    {
+        if (hum < set_hum - 5)
+        {
+            digitalWrite(HUM_RESISTOR, HIGH);
+        }
+        else
+        {
+            digitalWrite(HUM_RESISTOR, LOW);
+        }
+        if (hum >= maxHumidity)
+        {
+            digitalWrite(HUM_RESISTOR, LOW);
+        }
 
-    if (hum < set_hum - 5)
-    {
-        digitalWrite(HUM_RESISTOR, HIGH);
-    }
-    else
-    {
-        digitalWrite(HUM_RESISTOR, LOW);
-    }
-    if (hum >= maxHumidity)
-    {
-        digitalWrite(HUM_RESISTOR, LOW);
-    }
-
-    if (digitalRead(WATER_LEVEL))
-    {
-        digitalWrite(30, HIGH);
-    }
-    else
-    {
-        digitalWrite(30, LOW);
+        if (digitalRead(WATER_LEVEL))
+        {
+            digitalWrite(30, HIGH);
+        }
+        else
+        {
+            digitalWrite(30, LOW);
+        }
     }
 }
 
@@ -269,7 +304,7 @@ void testSystem()
     }
 }
 
-void createAlarm(uint32_t intervalo, uint8_t LED, bool reset = false)
+void createAlarm(uint32_t intervalo, bool reset = false)
 {
     static uint32_t lastChange = 0;
     static bool estado = false;
@@ -278,7 +313,6 @@ void createAlarm(uint32_t intervalo, uint8_t LED, bool reset = false)
     {
         estado = false;
         lastChange = millis();
-        digitalWrite(LED, LOW);
         digitalWrite(LED_BUILTIN, LOW);
         return;
     }
@@ -288,7 +322,6 @@ void createAlarm(uint32_t intervalo, uint8_t LED, bool reset = false)
     if (ahora - lastChange >= intervalo)
     {
         estado = !estado;
-        digitalWrite(LED, HIGH);
         digitalWrite(LED_BUILTIN, estado ? HIGH : LOW);
         lastChange = ahora;
     }
