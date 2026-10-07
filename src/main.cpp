@@ -55,13 +55,15 @@ void pid()
             if (t2 > 38 || temperature > maxTemperature)
             {
                 analogWrite(9, 0);
+                digitalWrite(EXTRACTOR, HIGH);
                 if (t2 > 38)
                 {
                     digitalWrite(35, HIGH);
                 }
 
-                else
+                else{
                     digitalWrite(35, LOW);
+                }
 
                 if (temperature > maxTemperature)
                     digitalWrite(33, HIGH);
@@ -76,6 +78,7 @@ void pid()
                 createAlarm(INTERVALO, true);
                 digitalWrite(35, LOW);
                 digitalWrite(33, LOW);
+                digitalWrite(EXTRACTOR, LOW);
 
                 if (t2 < 34)
                 {
@@ -104,6 +107,7 @@ void pid()
             if (t2 > 38 || temperature > maxTemperature)
             {
                 analogWrite(9, 0);
+                digitalWrite(EXTRACTOR, HIGH);
                 if (t2 > 38)
                     digitalWrite(35, HIGH);
                 else
@@ -119,6 +123,7 @@ void pid()
             else
             {
                 createAlarm(INTERVALO, true);
+                digitalWrite(EXTRACTOR, LOW);
                 digitalWrite(33, LOW);
                 digitalWrite(35, LOW);
 
