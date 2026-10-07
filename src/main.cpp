@@ -10,6 +10,7 @@
 #define EXTRACTOR 12
 #define HUM_RESISTOR 11
 #define WATER_LEVEL 6
+#define VENTILADOR 10 
 
 // constants
 
@@ -28,7 +29,7 @@ const unsigned long INTERVALO = 500;
 // Estado DS18B20
 static uint32_t lastRequest = 0;
 static bool pending = false;
-float t2 = 0;
+float t2 = 0.00f;
 
 // declarations
 void testSystem(void);
@@ -47,13 +48,18 @@ void pid()
     if (pidState)
     {
         digitalWrite(LED_PID, !digitalRead(LED_PID));
+        digitalWrite(VENTILADOR, HIGH);
+
         if (modo == 0)
         {
             if (t2 > 38 || temperature > maxTemperature)
             {
                 analogWrite(9, 0);
                 if (t2 > 38)
+                {
                     digitalWrite(35, HIGH);
+                }
+
                 else
                     digitalWrite(35, LOW);
 
@@ -70,6 +76,17 @@ void pid()
                 createAlarm(INTERVALO, true);
                 digitalWrite(35, LOW);
                 digitalWrite(33, LOW);
+
+                if (t2 < 34)
+                {
+                    createAlarm(INTERVALO, false);
+                    digitalWrite(35, HIGH);
+                }
+                else
+                {
+                    createAlarm(INTERVALO, true);
+                    digitalWrite(35, LOW);
+                }
                 pid_temp.output = computePID(&pid_temp, temperature);
 
                 analogWrite(9, (int)pid_temp.output);
@@ -104,6 +121,17 @@ void pid()
                 createAlarm(INTERVALO, true);
                 digitalWrite(33, LOW);
                 digitalWrite(35, LOW);
+
+                if (t2 < 34)
+                {
+                    createAlarm(INTERVALO, false);
+                    digitalWrite(35, HIGH);
+                }
+                else
+                {
+                    createAlarm(INTERVALO, true);
+                    digitalWrite(35, LOW);
+                }
                 pid_temp.output = computePID(&pid_temp, t2);
 
                 analogWrite(9, (int)pid_temp.output);
@@ -182,8 +210,26 @@ void ds18b20()
     {
         t2 = ds18b20_getTemperature();
 
-        lcd2.clear();
-        lcd2.print(t2);
+        if (pidState)
+        {
+            lcd2.clear();
+            lcd2.print("Temp. P:");
+            lcd2.print(t2);
+            lcd2.print("\xDF");
+            lcd2.print("C");
+
+            if (t2 > 38)
+            {
+                lcd2.setCursor(0, 1);
+                lcd2.print("HIPERTERMIA");
+            }
+            else if (t2 < 34)
+            {
+                lcd2.setCursor(0, 1);
+                lcd2.print("HIPOTERMIA");
+            }
+        }
+
         pending = false;
     }
 }
@@ -239,8 +285,15 @@ void setup()
     init_sht31();
     ds18b20_init();
 
+    // Primer refresh de pantalla
     lcd2.init();
     lcd2.backlight();
+    lcd2.clear();
+    lcd2.print("Temp. P:");
+    lcd2.print(t2);
+    lcd2.print("\xDF");
+    lcd2.print("C");
+
 
     runner.addTask(taskButtons);
     runner.addTask(taskPID);
