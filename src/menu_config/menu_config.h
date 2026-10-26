@@ -16,10 +16,9 @@
 
 
 
-#define UP_PIN      4
-#define DOWN_PIN    36
-#define ENTER_PIN   34
-#define BACK_PIN    3
+#define UP_PIN      47
+#define DOWN_PIN    43
+#define ENTER_PIN   45
 
 #define LCD_COLS 20
 #define LCD_ROWS 4

@@ -5,12 +5,13 @@
 #include "sht_31/sht_31.h"
 
 #include "ds18b20/ds18b20.h"
+#include "triac_control/triac_control.h"
 
-#define LED_PID 45
+#define LED_PID 49
 #define EXTRACTOR 12
 #define HUM_RESISTOR 11
 #define WATER_LEVEL 6
-#define VENTILADOR 10 
+#define VENTILADOR 7
 
 // constants
 
@@ -29,7 +30,7 @@ const unsigned long INTERVALO = 500;
 // Estado DS18B20
 static uint32_t lastRequest = 0;
 static bool pending = false;
-float t2 = 0.00f;
+float t2 = 28.00f;
 
 // declarations
 void testSystem(void);
@@ -40,35 +41,35 @@ void createAlarm2(uint32_t intervalo, uint8_t LED, bool reset);
 
 void pid()
 {
-
-    float t = sht31.readTemperature();
-
-    temperature = t;
-
     if (pidState)
     {
         digitalWrite(LED_PID, !digitalRead(LED_PID));
-        digitalWrite(VENTILADOR, HIGH);
+        digitalWrite(VENTILADOR, LOW);
+        Serial.print("ISR Intensity: ");
+        Serial.println(intensidad_vista_por_isr);
 
         if (modo == 0)
         {
+            if(temperature == 0) return;
+
             if (t2 > 38 || temperature > maxTemperature)
             {
-                analogWrite(9, 0);
-                digitalWrite(EXTRACTOR, HIGH);
+                intensidad = 0;
+                digitalWrite(EXTRACTOR, LOW);
                 if (t2 > 38)
                 {
                     digitalWrite(35, HIGH);
                 }
 
-                else{
+                else
+                {
                     digitalWrite(35, LOW);
                 }
 
                 if (temperature > maxTemperature)
-                    digitalWrite(33, HIGH);
+                    digitalWrite(39, HIGH);
                 else
-                    digitalWrite(33, LOW);
+                    digitalWrite(39, LOW);
 
                 createAlarm(INTERVALO, false);
             }
@@ -77,8 +78,8 @@ void pid()
             {
                 createAlarm(INTERVALO, true);
                 digitalWrite(35, LOW);
-                digitalWrite(33, LOW);
-                digitalWrite(EXTRACTOR, LOW);
+                digitalWrite(39, LOW);
+                digitalWrite(EXTRACTOR, HIGH);
 
                 if (t2 < 34)
                 {
@@ -92,13 +93,18 @@ void pid()
                 }
                 pid_temp.output = computePID(&pid_temp, temperature);
 
-                analogWrite(9, (int)pid_temp.output);
+                noInterrupts();
+                intensidad = (unsigned int)pid_temp.output;
+                interrupts();
             }
 
             // Serial print for debug
             Serial.print("output is:");
             Serial.println(pid_temp.output);
             Serial.println(temperature);
+            Serial.println("intensidad: ");
+            Serial.println(intensidad);
+            Serial.println("");
         }
 
         if (modo)
@@ -106,16 +112,16 @@ void pid()
 
             if (t2 > 38 || temperature > maxTemperature)
             {
-                analogWrite(9, 0);
+                intensidad = 0;
                 digitalWrite(EXTRACTOR, HIGH);
                 if (t2 > 38)
                     digitalWrite(35, HIGH);
                 else
                     digitalWrite(35, LOW);
                 if (temperature > maxTemperature)
-                    digitalWrite(33, HIGH);
+                    digitalWrite(39, HIGH);
                 else
-                    digitalWrite(33, LOW);
+                    digitalWrite(39, LOW);
 
                 createAlarm(INTERVALO, false);
             }
@@ -124,7 +130,7 @@ void pid()
             {
                 createAlarm(INTERVALO, true);
                 digitalWrite(EXTRACTOR, LOW);
-                digitalWrite(33, LOW);
+                digitalWrite(39, LOW);
                 digitalWrite(35, LOW);
 
                 if (t2 < 34)
@@ -139,7 +145,7 @@ void pid()
                 }
                 pid_temp.output = computePID(&pid_temp, t2);
 
-                analogWrite(9, (int)pid_temp.output);
+                intensidad = (unsigned long)pid_temp.output;
             }
 
             // Serial print for debug
@@ -152,15 +158,15 @@ void pid()
 
     else
     {
-        analogWrite(9, 0);
+        intensidad = 0;
         digitalWrite(LED_PID, LOW);
         digitalWrite(35, LOW);
-        digitalWrite(33, LOW);
-        digitalWrite(EXTRACTOR, LOW);
-        digitalWrite(HUM_RESISTOR, LOW);
-        digitalWrite(10, LOW);
-        digitalWrite(11, LOW);
-        digitalWrite(12, LOW);
+        digitalWrite(39, LOW);
+        digitalWrite(EXTRACTOR, HIGH);
+        digitalWrite(HUM_RESISTOR, HIGH);
+        digitalWrite(7, HIGH);
+        digitalWrite(11, HIGH);
+        digitalWrite(12, HIGH);
         digitalWrite(LED_BUILTIN, LOW);
     }
 }
@@ -173,28 +179,30 @@ void humidity()
         taskSystemTest.enable();
 
     hum = (int)sht31.readHumidity();
+    float t = sht31.readTemperature();
+    temperature = t;
     if (pidState)
     {
         if (hum < set_hum - 5)
         {
-            digitalWrite(HUM_RESISTOR, HIGH);
+            digitalWrite(HUM_RESISTOR, LOW);
         }
         else
         {
-            digitalWrite(HUM_RESISTOR, LOW);
+            digitalWrite(HUM_RESISTOR, HIGH);
         }
         if (hum >= maxHumidity)
         {
-            digitalWrite(HUM_RESISTOR, LOW);
+            digitalWrite(HUM_RESISTOR, HIGH);
         }
 
         if (digitalRead(WATER_LEVEL))
         {
-            digitalWrite(30, HIGH);
+            digitalWrite(41, HIGH);
         }
         else
         {
-            digitalWrite(30, LOW);
+            digitalWrite(41, LOW);
         }
     }
 }
@@ -239,7 +247,7 @@ void ds18b20()
     }
 }
 Task taskButtons(25, TASK_FOREVER, &buttonObserver);
-Task taskPID(2000, TASK_FOREVER, &pid);
+Task taskPID(500, TASK_FOREVER, &pid);
 Task taskHumidity(1000, TASK_FOREVER, &humidity);
 Task taskDs18b20(800, TASK_FOREVER, &ds18b20);
 
@@ -254,30 +262,28 @@ void setup()
     // Eliminar adelante
     pinMode(11, OUTPUT);
     pinMode(12, OUTPUT);
-    pinMode(33, OUTPUT);
+    pinMode(39, OUTPUT);
+    pinMode(7, OUTPUT);
 
     // Debug de test
-    pinMode(28, OUTPUT); // LED FALLA SENSOR
-    // digitalWrite(33, HIGH); Esto es un botón
+    pinMode(39, OUTPUT); // TEMP CABINA LED
     pinMode(35, OUTPUT); // LED TEMP PIEL
-    pinMode(32, OUTPUT); // LED SIN NOMBRE
-    pinMode(31, OUTPUT); // FALLA DE RESISTENCIA LED
-    pinMode(30, OUTPUT); // WATER LEVEL
-    pinMode(45, OUTPUT); // MODO PIEL // Actualmente es el heartbeat del PID
-    pinMode(44, OUTPUT); // LED MODE AIRE
-    pinMode(42, OUTPUT);
+    pinMode(37, OUTPUT); // LED FALLA DE SENSOR
+    pinMode(41, OUTPUT); // WATER LEVEL
     pinMode(WATER_LEVEL, INPUT);
     // PID INITIAL CONFIG
-    pid_temp.kp = 0.8f;
-    pid_temp.ki = 0.05f;
-    pid_temp.kd = 40.0f;
+    pid_temp.kp = 5.0f;
+    pid_temp.ki = 0.5f;
+    pid_temp.kd = 15.0f;
 
-    pid_temp.setpoint = 35.0f;
-    pid_temp.filterTau = 10.0f;
-    pid_temp.sampleTime = 2.0f;
+    pid_temp.setpoint = 37.50f;
+    pid_temp.filterTau = 0.5f;
+    pid_temp.sampleTime = 0.5f;
 
     pid_temp.minOutputLim = 0.0f;
-    pid_temp.maxOutputLim = 255.0f;
+    pid_temp.maxOutputLim = 1000.0f;
+
+    pid_temp.useAntiWindup = true;
 
     // Hum
     set_hum = minHumidity;
@@ -290,6 +296,8 @@ void setup()
     init_sht31();
     ds18b20_init();
 
+    triacConfigSetup();
+
     // Primer refresh de pantalla
     lcd2.init();
     lcd2.backlight();
@@ -298,7 +306,6 @@ void setup()
     lcd2.print(t2);
     lcd2.print("\xDF");
     lcd2.print("C");
-
 
     runner.addTask(taskButtons);
     runner.addTask(taskPID);
@@ -325,37 +332,27 @@ void testSystem()
         taskHumidity.disable();
         taskPID.disable();
 
-        digitalWrite(9, HIGH);           // Enable Resistor PID
-        digitalWrite(10, HIGH);          // Relé 1
-        digitalWrite(11, HIGH);          // Relé 2
-        digitalWrite(12, HIGH);          // Relé 3
+        intensidad = 255;           // Enable Resistor PID max power
+        digitalWrite(7, LOW);          // Relé 1
+        digitalWrite(11, LOW);          // Relé 2
+        digitalWrite(12, LOW);          // Relé 3
         digitalWrite(LED_BUILTIN, HIGH); // Buzzer
-        digitalWrite(28, HIGH);          // LED FALLA SENSOR
-        // digitalWrite(33, HIGH); Esto es un botón
         digitalWrite(35, HIGH); // LED TEMP PIEL
-        digitalWrite(32, HIGH); // LED SIN NOMBRE
-        digitalWrite(31, HIGH); // FALLA DE RESISTENCIA LED
-        digitalWrite(30, HIGH); // WATER LEVEL
-        digitalWrite(45, HIGH); // MODO PIEL // Actualmente es el heartbeat del PID
-        digitalWrite(44, HIGH); // LED MODE AIRE
-        digitalWrite(42, HIGH); //
+        digitalWrite(41, HIGH); // WATER LEVEL
+        digitalWrite(39, HIGH); // TEMP cabina led
+        digitalWrite(37, HIGH); // LED FALLA DE SENSOR
     }
     else
     {
-        digitalWrite(9, LOW);           // Enable Resistor PID
-        digitalWrite(10, LOW);          // Relé 1
-        digitalWrite(11, LOW);          // Relé 2
-        digitalWrite(12, LOW);          // Relé 3
+        intensidad = 0;           // Enable Resistor PID
+        digitalWrite(7, HIGH);          // Relé 1
+        digitalWrite(11, HIGH);          // Relé 2
+        digitalWrite(12, HIGH);          // Relé 3
         digitalWrite(LED_BUILTIN, LOW); // Buzzer
-        digitalWrite(28, LOW);          // LED FALLA SENSOR
-        // digitalWrite(33, HIGH); Esto es un botón
-        digitalWrite(35, LOW); // LED TEMP PIEL
-        digitalWrite(32, LOW); // LED SIN NOMBRE
-        digitalWrite(31, LOW); // FALLA DE RESISTENCIA LED
-        digitalWrite(30, LOW); // WATER LEVEL
-        digitalWrite(45, LOW); // MODO PIEL // Actualmente es el heartbeat del PID
-        digitalWrite(44, LOW); // LED MODE AIRE
-        digitalWrite(42, LOW); //
+        digitalWrite(35, LOW);          // LED TEMP PIEL
+        digitalWrite(37, LOW);         // LED FALLA DE SENSOR
+        digitalWrite(41, LOW);         // WATER LEVEL
+        digitalWrite(39, LOW);         // TEMP cabina led
         taskHumidity.enable();
         taskPID.enable();
         taskSystemTest.disable();
